@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL
+  db-pweb:
+    image: postgres:15-alpine
+    container_name: db-pweb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: todolist
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_pweb_data:/var/lib/postgresql/data
+    networks:
+      - todo-pweb-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Backend API
+  backend-pweb:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend-pweb
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: db-pweb
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: todolist
+      REDIS_URL: redis://redis-pweb:6379
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db-pweb:
+        condition: service_healthy
+    networks:
+      - todo-pweb-network
+    restart: unless-stopped
+
+  # Redis Cache
+  redis-pweb:
+    image: redis:alpine
+    container_name: redis-pweb
+    ports:
+      - "6379:6379"
+    networks:
+      - todo-pweb-network
+    restart: unless-stopped
+
+  # Frontend (Build e serve com Nginx)
+  frontend-pweb:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:3000
+    container_name: frontend-pweb
+    ports:
+      - "80:80"
+    depends_on:
+      - backend-pweb
+    networks:
+      - todo-pweb-network
+    restart: unless-stopped
+
+networks:
+  todo-pweb-network:
+    driver: bridge
+
+volumes:
+  postgres_pweb_data:
