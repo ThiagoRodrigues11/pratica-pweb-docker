@@ -10,8 +10,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { isAuthenticated, loading } = useAuth();
 
-  // TEMPORÁRIO: Desabilitar proteção para teste
-  const isTestMode = true;
+  const isTestMode = false;
 
   if (loading && !isTestMode) {
     return (

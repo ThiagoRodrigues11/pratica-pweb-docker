@@ -1,6 +1,6 @@
 import { showSuccess, showError, showLoading, dismissToast } from "@/utils/toast";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 
 export interface LoginRequest {
   email: string;
@@ -9,7 +9,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 export interface User {

@@ -9,7 +9,7 @@ interface User {
 
 interface AuthTokens {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 interface AuthContextType {
@@ -37,17 +37,8 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // TEMPORÁRIO: Mockar dados para teste
-  const [user, setUser] = useState<User | null>({
-    id: '1',
-    name: 'João Silva',
-    email: 'joao.silva@exemplo.com',
-    photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-  });
-  const [tokens, setTokens] = useState<AuthTokens | null>({
-    accessToken: 'mock-access-token',
-    refreshToken: 'mock-refresh-token'
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [tokens, setTokens] = useState<AuthTokens | null>(null);
   const [loading, setLoading] = useState(false);
 
   const isAuthenticated = !!user && !!tokens;
@@ -80,7 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
       const response = await fetch(`${API_BASE_URL}/signin`, {
         method: 'POST',
         headers: {
@@ -91,10 +82,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.ok) {
         const data = await response.json();
-        const { accessToken, refreshToken } = data;
-        
-        setTokens({ accessToken, refreshToken });
-        localStorage.setItem('authTokens', JSON.stringify({ accessToken, refreshToken }));
+        const accessToken: string | undefined = data.accessToken;
+        const refreshToken: string | undefined = data.refreshToken;
+
+        if (!accessToken) {
+          throw new Error('Token não recebido do servidor');
+        }
+
+        const nextTokens: AuthTokens = { accessToken, refreshToken };
+        setTokens(nextTokens);
+        localStorage.setItem('authTokens', JSON.stringify(nextTokens));
         
         // Buscar dados do usuário
         const userResponse = await fetch(`${API_BASE_URL}/profile`, {
