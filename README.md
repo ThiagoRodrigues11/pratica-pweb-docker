@@ -183,6 +183,37 @@ As rotas de tarefas (`/tasks`) agora exigem JWT Bearer.
 
 ---
 
+## 🚦 Como rodar do zero
+
+### 1. Configurar variáveis de ambiente
+1. Copie o arquivo `.env.example` para `.env`  
+   - Windows: `copy .env.example .env`  
+   - Linux/Mac: `cp .env.example .env`
+2. Edite `.env` e defina:
+   - `JWT_SECRET` com um valor seguro (obrigatório para o backend subir).
+   - `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_BUCKET` se for usar storage Supabase (`STORAGE_DRIVER=supabase`).
+   - Outras variáveis conforme descrito no `.env.example` (DB, cache, VITE_API_BASE_URL etc.).
+
+### 2. Subir os containers
+Na raiz do projeto:
+```bash
+docker compose up --build
+```
+
+### 3. Executar migrations (se necessário)
+Em outra janela/terminal:
+```bash
+docker compose exec backend-pweb npx sequelize-cli db:migrate
+# ou usando o script npm dentro do container:
+docker compose exec backend-pweb npm run migrate
+```
+
+### 4. Acessar
+- Frontend: `http://localhost` (porta 80)
+- API backend: `http://localhost:3001`
+
+---
+
 ## 🧾 Conclusão
 Parabéns! 🎉  
 Você acabou de subir uma aplicação completa **frontend + backend + banco de dados** apenas com **Docker e Compose**.
