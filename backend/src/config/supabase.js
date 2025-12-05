@@ -1,14 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
+import env from './env.js';
 
-dotenv.config();
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-    console.warn('Supabase URL or Key is missing. Storage features may not work.');
-}
+const { supabaseUrl, supabaseKey } = env.storage;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 

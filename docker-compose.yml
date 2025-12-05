@@ -36,9 +36,20 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: todolist
-      REDIS_URL: redis://redis-pweb:6379
+      CACHE_DRIVER: ${CACHE_DRIVER:-redis}
+      CACHE_HOST: ${CACHE_HOST:-redis-pweb}
+      CACHE_PORT: ${CACHE_PORT:-6379}
+      CACHE_PASSWORD: ${CACHE_PASSWORD:-}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-3600}
+      CACHE_NAMESPACE: ${CACHE_NAMESPACE:-todoapp}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-supabase}
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_KEY: ${SUPABASE_KEY}
+      SUPABASE_BUCKET: ${SUPABASE_BUCKET}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      JWT_ISSUER: ${JWT_ISSUER:-todo-app}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-todo-users}
     ports:
       - "3000:3000"
     depends_on:
@@ -52,6 +63,8 @@ services:
   redis-pweb:
     image: redis:alpine
     container_name: redis-pweb
+    environment:
+      CACHE_PASSWORD: ${CACHE_PASSWORD:-}
     ports:
       - "6379:6379"
     networks:
@@ -64,7 +77,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_BASE_URL=http://localhost:3000
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:3000}
     container_name: frontend-pweb
     ports:
       - "80:80"

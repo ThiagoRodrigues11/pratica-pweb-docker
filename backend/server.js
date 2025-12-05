@@ -6,10 +6,13 @@ import { connectRedis } from "./src/config/redis.js";
 import redisClient from "./src/config/redis.js";
 import supabase from "./src/config/supabase.js";
 import multer from "multer";
+import env from "./src/config/env.js";
 
 dotenv.config();
 
 const { Task } = bd;
+const CACHE_KEY_TASKS = `${env.cache.namespace}:tasks`;
+const { supabaseBucket } = env.storage;
 
 // Configuração do Multer
 const upload = multer({ storage: multer.memoryStorage() });
@@ -25,7 +28,7 @@ try {
 }
 
 const app = express();
-const port = 3000;
+const port = env.app.port;
 
 app.use(express.json());
 app.use(cors());
@@ -37,7 +40,7 @@ app.get("/", (req, res) => {
 // Cache Miss e Hit na rota de listagem de tasks
 app.get("/tasks", async (req, res) => {
   try {
-    const cachedTasks = await redisClient.get("tasks");
+    const cachedTasks = await redisClient.get(CACHE_KEY_TASKS);
     if (cachedTasks) {
       console.log("Cache Hit");
       return res.json(JSON.parse(cachedTasks));
@@ -45,8 +48,8 @@ app.get("/tasks", async (req, res) => {
 
     console.log("Cache Miss");
     const tasks = await Task.findAll();
-    await redisClient.set("tasks", JSON.stringify(tasks), {
-      EX: 3600, // Expira em 1 hora
+    await redisClient.set(CACHE_KEY_TASKS, JSON.stringify(tasks), {
+      EX: env.cache.ttlSeconds,
     });
     res.json(tasks);
   } catch (error) {
@@ -62,7 +65,7 @@ app.post("/tasks", async (req, res) => {
   try {
     const task = await Task.create({ description, completed: false });
     // Invalidação do cache
-    await redisClient.del("tasks");
+    await redisClient.del(CACHE_KEY_TASKS);
     res.status(201).json(task);
   } catch (error) {
     res.status(500).json({ error: "Erro ao criar tarefa" });
@@ -82,7 +85,7 @@ app.put("/tasks/:id", async (req, res) => {
     if (!task) return res.status(404).json({ error: "Tarefa não encontrada" });
     await task.update({ description, completed });
     // Invalidação do cache
-    await redisClient.del("tasks");
+    await redisClient.del(CACHE_KEY_TASKS);
     res.json(task);
   } catch (error) {
     res.status(500).json({ error: "Erro ao atualizar tarefa" });
@@ -94,7 +97,7 @@ app.delete("/tasks/:id", async (req, res) => {
     const deleted = await Task.destroy({ where: { id: req.params.id } });
     if (!deleted) return res.status(404).json({ error: "Tarefa não encontrada" });
     // Invalidação do cache
-    await redisClient.del("tasks");
+    await redisClient.del(CACHE_KEY_TASKS);
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: "Erro ao deletar tarefa" });
@@ -112,7 +115,7 @@ app.post("/profile/photo", upload.single("photo"), async (req, res) => {
     const fileName = `profile_${Date.now()}_${file.originalname}`;
 
     const { data, error } = await supabase.storage
-      .from("avatars") // Certifique-se de criar este bucket no Supabase
+      .from(supabaseBucket) // Certifique-se de criar este bucket no Supabase
       .upload(fileName, file.buffer, {
         contentType: file.mimetype,
       });
@@ -120,7 +123,7 @@ app.post("/profile/photo", upload.single("photo"), async (req, res) => {
     if (error) throw error;
 
     const { data: publicUrlData } = supabase.storage
-      .from("avatars")
+      .from(supabaseBucket)
       .getPublicUrl(fileName);
 
     res.json({ url: publicUrlData.publicUrl });

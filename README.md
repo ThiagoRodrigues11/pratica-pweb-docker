@@ -137,6 +137,41 @@ Todos estão na mesma **network do compose**, usando **DNS interno**.
 
 ---
 
+## ⚙️ Variáveis de ambiente
+
+Use o arquivo `.env.example` como base e configure antes de subir os serviços.
+
+- Banco: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- Cache (Redis): `CACHE_DRIVER`, `CACHE_HOST`, `CACHE_PORT`, `CACHE_PASSWORD` (opcional), `CACHE_TTL_SECONDS`, `CACHE_NAMESPACE`
+- Storage (Supabase): `STORAGE_DRIVER`, `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_BUCKET`
+- JWT: `JWT_SECRET` (obrigatório), `JWT_EXPIRES_IN`, `JWT_ISSUER`, `JWT_AUDIENCE`
+- Frontend: `VITE_API_BASE_URL` (usado no build do frontend)
+
+Exemplo mínimo:
+```env
+DB_HOST=db-pweb
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=todolist
+
+CACHE_DRIVER=redis
+CACHE_HOST=redis-pweb
+CACHE_PORT=6379
+CACHE_TTL_SECONDS=3600
+CACHE_NAMESPACE=todoapp
+
+STORAGE_DRIVER=supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=supabase-service-key
+SUPABASE_BUCKET=avatars
+
+JWT_SECRET=change-me
+JWT_EXPIRES_IN=1h
+```
+
+---
+
 ## 🧾 Conclusão
 Parabéns! 🎉  
 Você acabou de subir uma aplicação completa **frontend + backend + banco de dados** apenas com **Docker e Compose**.

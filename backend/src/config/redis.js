@@ -1,10 +1,8 @@
 import { createClient } from 'redis';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import env from './env.js';
 
 const redisClient = createClient({
-    url: process.env.REDIS_URL
+    url: env.cache.url,
 });
 
 redisClient.on('error', (err) => console.error('Redis Client Error', err));
@@ -12,7 +10,7 @@ redisClient.on('error', (err) => console.error('Redis Client Error', err));
 export const connectRedis = async () => {
     if (!redisClient.isOpen) {
         await redisClient.connect();
-        console.log('Redis connected');
+        console.log(`Redis connected on ${env.cache.host}:${env.cache.port}`);
     }
 };
 
