@@ -145,6 +145,7 @@ Use o arquivo `.env.example` como base e configure antes de subir os serviços.
 - Cache (Redis): `CACHE_DRIVER`, `CACHE_HOST`, `CACHE_PORT`, `CACHE_PASSWORD` (opcional), `CACHE_TTL_SECONDS`, `CACHE_NAMESPACE`
 - Storage (Supabase): `STORAGE_DRIVER`, `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_BUCKET`
 - JWT: `JWT_SECRET` (obrigatório), `JWT_EXPIRES_IN`, `JWT_ISSUER`, `JWT_AUDIENCE`
+- Hash de senha: `BCRYPT_SALT_ROUNDS` (padrão 10)
 - Frontend: `VITE_API_BASE_URL` (usado no build do frontend)
 
 Exemplo mínimo:
@@ -168,7 +169,17 @@ SUPABASE_BUCKET=avatars
 
 JWT_SECRET=change-me
 JWT_EXPIRES_IN=1h
+JWT_ISSUER=todo-app
+JWT_AUDIENCE=todo-users
+BCRYPT_SALT_ROUNDS=10
 ```
+
+### Endpoints de autenticação
+- `POST /signup` — cria usuário (name, email, password) e retorna `accessToken`
+- `POST /signin` — autentica usuário e retorna `accessToken`
+- `GET /profile` — requer Bearer token; retorna dados do usuário
+
+As rotas de tarefas (`/tasks`) agora exigem JWT Bearer.
 
 ---
 

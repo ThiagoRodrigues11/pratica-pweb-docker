@@ -7,10 +7,12 @@ import redisClient from "./src/config/redis.js";
 import supabase from "./src/config/supabase.js";
 import multer from "multer";
 import env from "./src/config/env.js";
+import { registerUser, loginUser, generateToken } from "./src/services/auth.js";
+import authMiddleware from "./src/middleware/auth.js";
 
 dotenv.config();
 
-const { Task } = bd;
+const { Task, User } = bd;
 const CACHE_KEY_TASKS = `${env.cache.namespace}:tasks`;
 const { supabaseBucket } = env.storage;
 
@@ -37,8 +39,63 @@ app.get("/", (req, res) => {
   res.json({ message: "Hello World" });
 });
 
+// Auth routes
+app.post("/signup", async (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: "Nome, email e senha são obrigatórios" });
+  }
+  try {
+    const user = await registerUser({ name, email, password });
+    const token = generateToken(user);
+    res.status(201).json({
+      user: { id: user.id, name: user.name, email: user.email },
+      accessToken: token,
+    });
+  } catch (error) {
+    if (error.code === "EMAIL_IN_USE") {
+      return res.status(409).json({ error: "Email já cadastrado" });
+    }
+    console.error("Erro ao registrar usuário:", error);
+    res.status(500).json({ error: "Erro ao registrar usuário" });
+  }
+});
+
+app.post("/signin", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email e senha são obrigatórios" });
+  }
+  try {
+    const { user, token } = await loginUser({ email, password });
+    res.json({
+      user: { id: user.id, name: user.name, email: user.email },
+      accessToken: token,
+    });
+  } catch (error) {
+    if (error.code === "INVALID_CREDENTIALS") {
+      return res.status(401).json({ error: "Credenciais inválidas" });
+    }
+    console.error("Erro no login:", error);
+    res.status(500).json({ error: "Erro ao autenticar" });
+  }
+});
+
+app.get("/profile", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: ["id", "name", "email"],
+    });
+    if (!user) return res.status(404).json({ error: "Usuário não encontrado" });
+    res.json(user);
+  } catch (error) {
+    console.error("Erro ao carregar perfil:", error);
+    res.status(500).json({ error: "Erro ao carregar perfil" });
+  }
+});
+
 // Cache Miss e Hit na rota de listagem de tasks
-app.get("/tasks", async (req, res) => {
+app.get("/tasks", authMiddleware, async (req, res) => {
   try {
     const cachedTasks = await redisClient.get(CACHE_KEY_TASKS);
     if (cachedTasks) {
@@ -58,7 +115,7 @@ app.get("/tasks", async (req, res) => {
   }
 });
 
-app.post("/tasks", async (req, res) => {
+app.post("/tasks", authMiddleware, async (req, res) => {
   const { description } = req.body;
   if (!description) return res.status(400).json({ error: "Descrição obrigatória" });
 
@@ -72,13 +129,13 @@ app.post("/tasks", async (req, res) => {
   }
 });
 
-app.get("/tasks/:id", async (req, res) => {
+app.get("/tasks/:id", authMiddleware, async (req, res) => {
   const task = await Task.findByPk(req.params.id);
   if (!task) return res.status(404).json({ error: "Tarefa não encontrada" });
   res.json(task);
 });
 
-app.put("/tasks/:id", async (req, res) => {
+app.put("/tasks/:id", authMiddleware, async (req, res) => {
   const { description, completed } = req.body;
   try {
     const task = await Task.findByPk(req.params.id);
@@ -92,7 +149,7 @@ app.put("/tasks/:id", async (req, res) => {
   }
 });
 
-app.delete("/tasks/:id", async (req, res) => {
+app.delete("/tasks/:id", authMiddleware, async (req, res) => {
   try {
     const deleted = await Task.destroy({ where: { id: req.params.id } });
     if (!deleted) return res.status(404).json({ error: "Tarefa não encontrada" });

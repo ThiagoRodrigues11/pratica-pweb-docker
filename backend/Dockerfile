@@ -1,8 +1,8 @@
 # Use a imagem oficial do Node.js como base
 FROM node:18-alpine
 
-# Instala o bash e postgresql-client para executar scripts e comandos SQL
-RUN apk add --no-cache bash postgresql-client
+# Instala o bash, postgresql-client e ferramentas de build necessárias para bcrypt
+RUN apk add --no-cache bash postgresql-client python3 make g++
 
 # Define o diretório de trabalho dentro do container
 WORKDIR /app
